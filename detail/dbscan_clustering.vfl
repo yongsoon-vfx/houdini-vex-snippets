@@ -1,0 +1,64 @@
+float eps = chf("epsilon");
+int minpts = chi("min_pts");
+
+int clusters[];
+
+for(int i = 0; i < @numpt; i++){
+    clusters[i] = -1;
+}
+// Attribute arrays to store results for each point
+// cluster_ids: -1 = unvisited, 0 = noise, >0 = cluster ID
+int current_cluster = 0;
+
+for(int ptnum = 0; ptnum < @numpt; ptnum++){
+    if(clusters[ptnum] != -1){
+        continue;
+    }
+    
+    vector ptpos = point(0,"P",ptnum);
+    int nbpts[] = nearpoints(0, ptpos, eps);
+    
+    if(len(nbpts) < minpts){
+        clusters[ptnum] = 0;
+        continue;
+    }
+    
+    current_cluster++;
+    clusters[ptnum] = current_cluster;
+    
+    int queue[];
+    foreach(int nbpt; nbpts){
+        if (nbpt == ptnum) continue;
+        append(queue,nbpt);
+    }
+    
+    int head = 0;
+    while(head < len(queue)){
+        int queue_pt = queue[head];
+        head++;
+        
+        if(clusters[queue_pt] == -1|| clusters[queue_pt] == 0){
+            clusters[queue_pt] = current_cluster;
+            
+            vector queue_ptpos = point(0,'P',queue_pt);
+            int queue_nbpts[] = nearpoints(0, queue_ptpos, eps);
+            
+            if( len(queue_nbpts) >= minpts ){
+                foreach( int queue_nbpt; queue_nbpts){
+                    if (clusters[queue_nbpt] == -1 || clusters[queue_nbpt] == 0){
+                        if(clusters[queue_nbpt] == -1){
+                            append(queue, queue_nbpt);
+                        }
+                    clusters[queue_nbpt] = current_cluster;
+                    
+                    }
+                }
+            }   
+        }
+    }
+}
+
+for(int i = 0; i < @numpt; i++){
+    setpointattrib(0,'cluster',i,clusters[i]);
+    setpointattrib(0, "is_noise", i, (clusters[i] == 0 ? 1 : 0));
+}
